@@ -1,11 +1,10 @@
 #ifndef MBED_Motor_H
 #define MBED_Motor_H
-#endif
 
 #include "mbed.h"
 
 #define MICROSTEPS_PER_STEP 16
-#define MAX_SPEED 8000
+#define MAX_SPEED 4000
 #define MIN_SPEED 500
 
 class Motor
@@ -13,33 +12,34 @@ class Motor
 public:
     enum State { accelerate, constant, deaccelerate, idle };
     State currentState;
+    float currentSpeed;
+    int accRate;
 
-    Motor(PinName _en, PinName m0, PinName m1, PinName m2, PinName _stepPin, PinName dir);
+    Motor(PinName _en, PinName m0, PinName m1, PinName m2, PinName _stepPin, PinName dir, PinName _led);
 
-    void step(float microstep, int dir, float speed);
-    void step(float microstep, int dir, float speed, int steps);
+    void initializeMove(float microstep, float speed);
+    void initializeMove(float microstep, float speed, int steps);
+    void setDirection(int dir);
+    void update(bool wait);
 
     void enable();
     void disable();
+    void printState();
 
-    PwmOut stepPin;
-    DigitalOut direction;
 
 private:
 
-    float minSpeed, maxSpeed, currentSpeed, targetSpeed;
-    int steps, stepsToStop, accRate;
+    DigitalOut direction, stepPin;
+    int steps, stepsToStop;
 
-    DigitalOut en;
+    DigitalOut en, led;
     BusOut microstepping;
-    Timeout timer;
 
-    void step(float microstep, int dir);
-    void move();
-    void stop();
+    void initializeMove(float microstep);
     void setResolution(float microstep);
-    void setDirection(int dir);
 
     //DigitalOut stepPin;
     //DigitalOut direction;
 };
+
+#endif /* MBED_Motor_H */

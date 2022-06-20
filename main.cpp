@@ -1,10 +1,8 @@
 #include "mbed.h"
 #include "TextLCD.h"
 #include "motor.h"
-#include "LCDErrorMsg.h"
-// #include <ctime>
+#include <string>
 #include <math.h>
-// #include <time.h>
 
 // Injection direction for Motor A
 #define INJECTA 1
@@ -12,238 +10,267 @@
 // Injection direction for Motor B
 #define INJECTB 0
 
+#define STEPS_FOR_1ML 250
+
+// Values defined in requirements.
+#define MIN_SAL 7
+#define MAX_SAL 14
+#define MIN_TEMP 35
+#define MAX_TEMP 42
+#define DESIRED_TEMP 37
+#define MIN_WATER 250
+#define MAX_WATER 450
+#define MSG_TIME 3
+
+// string p21="p21", p22="p22", p23="p23", p24="greenLED", p25="p25", p26="p26", p27="p27", p28="p28", p29="p29", p30="p30";
+// string p5="p5", p6="p6", p7="p7", p8="p8", p9="p9", p10="p10", p11="p11", p12="p12", p13="p13", p14="heater", p15="p15", p16="p16", p17="p17", p18="p18", p19="p19", p20="p20";
+
 // 1 if manual motor control is active, 0 when deactivated.
 bool manualMotor = true;
-
-Timer t;
-
-// Water level for beaker
-int waterLevel = 251;
-
-LCDErrorMsg tempMsg("Temp");
-LCDErrorMsg waterMsg("water");
-LCDErrorMsg salinityMsg("Sal");
 
 // RS, ENABLE, A4, A5, A6, A7
 TextLCD lcd(p29, p30, p28, p27, p26, p25);
 
-// ENABLE, M0, M1, M2, STP, DIR
-Motor mtrB(p7, p11, p12, p13, p22, p8);
+// ENABLE, M0, M1, M2, STP, DIR, yellowUpLED
+Motor mtrA(p10, p11, p12, p13, p22, p9, p22);
 
-// ENABLE, M0, M1, M2, STP, DIR
-Motor mtrA(p10, p11, p12, p13, p21, p9);
-
-// BusOut microstepping(p11, p12, p13);
-// DigitalOut stepA(p21);
-// DigitalOut dirA(p9);
-// DigitalOut stepB(p22);
-// DigitalOut dirB(p8);
+// ENABLE, M0, M1, M2, STP, DIR, yellowDownLED
+Motor mtrB(p7, p11, p12, p13, p21, p8, p21);
 
 DigitalOut heater(p14);
 DigitalOut greenLED(p24);
 DigitalOut redLED(p23);
-DigitalOut yellowUpLED(p22);
-DigitalOut yellowDownLED(p21);
 DigitalOut buzzer(p5);
 
-// when switched down, the corresponding pin SW1/SW2 will output 3.3V;
-// when switched up, the pin is connected to the ground (0V).
-AnalogIn switch1(p17);
-AnalogIn switch2(p18);
+// When switched down, the corresponding pin SW1/SW2 will output 3.3V;
+// When switched up, the pin is connected to the ground (0V).
+AnalogIn toggle1(p15); // SW1
+AnalogIn toggle2(p16); // SW2
 
-// their corresponding pins normally output 3.3V, but when pushed down they switch to 0V.
-AnalogIn switch3(p19);
-AnalogIn switch4(p20);
+// Their corresponding pins normally output 3.3V, but when pushed down they switch to 0V.
+AnalogIn switch3(p17); // SW3
+AnalogIn switch4(p18); // SW4
 
-// configures pin20 for analog input. Creates object temperatureSensor.
-AnalogIn temperatureSensor(p15);
+// Sensors
+AnalogIn temperatureSensor(p19);
+AnalogIn salinitySensor(p20);
 
-// configures pin20 for analog input. Creates object salinitySensor.
-AnalogIn salinitySensor(p16);
+// Current water level of beaker
+int waterLevel = MIN_WATER;
 
-float get_temperature(float Vin) {
-    // return 38.00;
-    return -30.79759812*Vin + 83.90646865;
+Timer timer;
+
+float get_temperature(float Vin)
+{
+    return -30.79759812 * Vin + 83.90646865;
 }
 
-float get_salinity(float Vin) {
-    // return 8.00;
-    return 13.40769944 *  exp(0.39797502 * Vin) - 12.3251654;
+float get_salinity(float Vin)
+{
+    return 13.40769944 * exp(0.39797502 * Vin) - 12.3251654;
 }
 
-// Determines whether to display the flashing error messages on the LCD screen
-bool shouldDisplayError() {
-    if (switch2.read() != 0) return false;
-    return waterMsg.display || salinityMsg.display || tempMsg.display;
+/**
+ * @brief Return true if the toggle is down, false if up
+ *
+ * @param tgl Toggle
+ */
+bool toggleDown(AnalogIn tgl)
+{
+    return tgl.read() > 0.5;
 }
 
-// Checks water, temp and salinity and toggles their error messages
-void checkErrorsforLCD(float Vtemp, float Vsal) {
-    if (waterLevel < 251) { // Beaker holds more than 250 mL of water
-        // @TODO activate buzzer
-        waterMsg.toggle(true, false);
-    } else if (waterLevel > 450) {
-        // @TODO activate buzzer
-        waterMsg.toggle(true, true);
-    } else {
-        // @TODO disable buzzer
-        waterMsg.toggle(false, false);
-    }
+/**
+ * @brief Return true if the switch is pressed down, false else
+ *
+ * @param sw Switch
+ */
+bool switchDown(AnalogIn sw)
+{
+    return sw.read() < 0.5;
+}
 
-    if (get_temperature(Vtemp) < 35) {
-        // @TODO activate buzzer
-        tempMsg.toggle(true, false);
-    } else if(get_temperature(Vtemp) > 42) {
-        // @TODO activate buzzer
-        tempMsg.toggle(true, true);
-    } else {
-        // @TODO disable buzzer
-        tempMsg.toggle(false, false);
-    }
+/**
+ * @brief Activates / Deactivates the buzzer, if toggle 1 is switched on
+ *
+ * @param on Boolean to switch it on or off
+ */
+void activateBuzzer(bool on)
+{
 
-    if (get_salinity(Vsal) < 7) {
-        // @TODO activate buzzer
-        salinityMsg.toggle(true, false);
-    } else if (get_salinity(Vsal) > 14) {
-        // @TODO activate buzzer
-        salinityMsg.toggle(true, true);
+    if(!toggleDown(toggle1)) {
+        buzzer = false;
     } else {
-        // @TODO disable buzzer
-        salinityMsg.toggle(false, false);
+        buzzer = on;
     }
 }
 
+string getErrorsforLCD(float temp, float sal, int waterLevel)
+{
+    string err = "";
+    if (waterLevel < MIN_WATER) {
+        err += "Water level low ";
+        // activateBuzzer(true);
+    } else if (waterLevel > MAX_WATER) {
+        err += "Water level high";
+        // activateBuzzer(true);
+    } else {
+        // activateBuzzer(false);
+    }
+
+    if (sal < MIN_SAL) {
+        err += "Low salinity    ";
+        // activateBuzzer(true);
+
+    } else if (sal > MAX_SAL) {
+        err += "High salinity   ";
+        // activateBuzzer(true);
+    } else {
+        // activateBuzzer(false);
+    }
+
+    // If less than than two messages have been added to the err string.
+    if (err.length() <= 16) {
+        if (temp <= MIN_TEMP) {
+            err += "Temperature low ";
+        } else if (temp >= MAX_TEMP) {
+            err += "Temperature high";
+        }
+    }
+
+    return err;
+}
+
+void displayDefaultLCD(float Vtemp, float Vsal, float temp, float sal)
+{
+    if (!toggleDown(toggle1)) {
+        lcd.printf("Temp: %.1f deg\n", temp);
+        lcd.printf("Sal: %.1f ppt", sal);
+    } else {
+        lcd.printf("Temp: %.1f V\n", Vtemp);
+        lcd.printf("Sal: %.1f V", Vsal);
+    }
+}
 
 void manualMotorControl()
 {
     int dirA, dirB;
 
     // If switch up
-    if (switch2.read() == 0) {
-        dirA = INJECTA;
-        dirB = INJECTB;
+    if (!toggleDown(toggle2)) {
+        mtrA.setDirection(INJECTA);
+        mtrB.setDirection(INJECTB);
     } else {
-        dirA = !INJECTA;
-        dirB = !INJECTB;
+        mtrA.setDirection(!INJECTA);
+        mtrB.setDirection(!INJECTB);
     }
 
     // If switch pushed down.
-    if (switch3.read() == 0 && mtrA.currentState == Motor::idle) {
-        // motorA = 1;
-        mtrA.step(1/MICROSTEPS_PER_STEP, dirA, MAX_SPEED);
-    } else if (switch3.read() == 1 && mtrA.currentState != Motor::idle) {
+    if (switchDown(switch3) && mtrA.currentState == Motor::idle) {
+        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
+        printf("Initialize motor A\r\n");
+    } else if (!switchDown(switch3) && mtrA.currentState != Motor::idle) {
         mtrA.currentState = Motor::deaccelerate;
+        printf("Deaccelerate motor A\r\n");
     }
 
-    mtrA.move();
-    // if (mtrB.currentState != Motor::idle) {
-    //     mtrB.move();
-    // }
+    if (switchDown(switch4) && mtrB.currentState == Motor::idle) {
+        mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
+    } else if (!switchDown(switch4) && mtrB.currentState != Motor::idle) {
+        mtrB.currentState = Motor::deaccelerate;
+    }
 }
 
-// void displayDefaultLCD(float Vtemp, float Vsal) {
-//     if (switch1.read() == 0) {
-//         lcd.printf("Temp: %.2f deg\n", get_temperature(Vtemp));
-//         lcd.printf("Sal: %.2f ppt", get_salinity(Vsal));
-//     } else {
-//         lcd.printf("Temp: %.2f V\n", Vtemp);
-//         lcd.printf("Sal: %.2f V", Vsal);
-//     }
-// }
+void run()
+{
+    activateBuzzer(false);
+    float Vtemp, Vsal, temp, sal;
+    string errors = "";
 
-int main() {
-    float f, Vtemp, Vsal;
-    bool motorA, motorB;
+    Vtemp = temperatureSensor.read() * 3.3;
+    Vsal = salinitySensor.read() * 3.3 * (5.f / 3.f);
 
-    t.start();
-    int timerInterval = 3;	// seconds
+    temp = get_temperature(Vtemp);
+    sal = get_salinity(Vsal);
 
-    while(1) {
-        f = temperatureSensor.read(); // or just float f = temperatureSensor; reads the digital output
-        Vtemp = f * 3.3; // converts the digital input value to volts [V]
+    // printf("Motor A ");
+    // mtrA.printState();
+    // printf("Motor B ");
+    // mtrB.printState();
 
-        f = salinitySensor.read();
-        Vsal = f * 3.3 * (5.f/3.f);
+    // LCD
+    lcd.cls();
+    // displayDefaultLCD(Vtemp, Vsal, temp, sal);
+    errors = getErrorsforLCD(temp, sal, waterLevel);
+    if (errors.empty()) {
+        displayDefaultLCD(Vtemp, Vsal, temp, sal);
+    } else {
+        lcd.printf("%s", errors);
+    }
 
-        mtrA.printState();
+    // Heater
+    heater = temp <= DESIRED_TEMP;
 
-        lcd.cls();
+    // LEDs
+    redLED = heater;
+    greenLED = temp > MIN_TEMP && temp < MAX_TEMP&&
+        sal >= MIN_SAL && sal <= MAX_SAL &&
+        waterLevel >= MIN_WATER && waterLevel <= MAX_WATER;
 
-
-        if (!shouldDisplayError() || t.read() <= timerInterval) {
-            if (switch1.read() == 0) {
-                lcd.printf("Temp: %.2f deg\n", get_temperature(Vtemp));
-                lcd.printf("Sal: %.2f ppt", get_salinity(Vsal));
-            } else {
-                lcd.printf("Temp: %.2f V\n", Vtemp);
-                lcd.printf("Sal: %.2f V", Vsal);
-            }
-
-            // lcd.printf("Temp: %.2f deg\n", get_temperature(Vtemp));
-            // lcd.printf("Sal: %.2f ppt", get_salinity(Vsal));
-            // displayDefaultLCD(Vtemp, Vsal);
-        } else {
-
-            if(waterMsg.display) {
-                lcd.printf("%s \n", waterMsg.getMsg());
-            }
-
-            if(tempMsg.display) {
-                lcd.printf("%s \n", tempMsg.getMsg());
-            }
-
-            if(salinityMsg.display) {
-                lcd.printf("%s", salinityMsg.getMsg());
-            }
-            // lcd.printf("Error message \n");
-            // lcd.printf(errorMessages[1]);
-
-            if (t.read() >= (timerInterval * 2)) {
-                t.reset();
-            }
-
+    if (manualMotor) {
+        manualMotorControl();
+    } else {
+        if (sal < MIN_SAL && mtrA.currentState == Motor::idle) {
+            mtrA.setDirection(INJECTA);
+            mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
+        } else if (sal > MAX_SAL && mtrB.currentState == Motor::idle) {
+            mtrB.setDirection(INJECTB);
+            mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
         }
+    }
 
-        checkErrorsforLCD(Vtemp, Vsal);
-
-        if (get_temperature(Vtemp) < 38){
-            heater = 1;
-        } else {
-            heater = 0;
-        }
-
-        // Controlling Green LED (Fuck requirements team)
-        if (
-            get_temperature(Vtemp) > 36 && get_temperature(Vtemp) < 40 && // Temp between 37 & 39 deg
-            get_salinity(Vsal) > 8 && get_salinity(Vsal) < 13 && // Salinity between 9 & 12 ppt
-            waterLevel > 249 && waterLevel < 451 // Water level between 250 & 450 mL
-        ) {
-            greenLED = 1;
-        } else {
-            greenLED = 0;
-        }
-
-        if (manualMotor) {
-            manualMotorControl();
-        }
-
-        // if (motorB && mtrB.currentState == Motor::idle) {
-        //     mtrB.step(1/MICROSTEPS_PER_STEP, dirB, MAX_SPEED, -1);
-        // }
-
-        redLED = heater;
-        // greenLED = 0;
-
-        // print the percentage and 16 bit normalized values
-        if (mtrA.currentState == Motor::idle && mtrB.currentState == Motor::idle) {
+    // print the percentage and 16 bit normalized values
+    if (mtrA.currentState == Motor::idle && mtrB.currentState == Motor::idle) {
+        if (errors.empty()) {
             wait(1);
         } else {
-            for (int i = 0; i < MIN_SPEED; i++) {
-                mtrA.move();
-                mtrB.move();
-                yellowUpLED = mtrA.currentState != Motor::idle;
-                yellowDownLED = mtrB.currentState != Motor::idle;
-            }
+            wait(0.5);
+            activateBuzzer(true);
+            wait(0.5);
+            activateBuzzer(false);
         }
+
+    } else {
+        if (errors.empty()) {
+            timer.reset();
+            while (timer.read() < 1) {
+                mtrA.update(mtrB.idle);
+                mtrB.update(true);
+            }
+        } else {
+            timer.reset();
+            while (timer.read() < 0.5) {
+                mtrA.update(mtrB.idle);
+                mtrB.update(true);
+            }
+            activateBuzzer(true);
+
+            timer.reset();
+            while (timer.read() < 0.5) {
+                mtrA.update(mtrB.idle);
+                mtrB.update(true);
+            }
+            activateBuzzer(false);
+        }
+    }
+}
+
+int main(int argc, char const* argv[])
+{
+    float timeElapsed = 0.;
+    timer.start();
+
+    while (1) {
+        run();
     }
 }
