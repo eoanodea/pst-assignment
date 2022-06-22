@@ -125,7 +125,8 @@ void Motor::printState()
     }
 }
 
-// bool Motor::operator==(Motor *other)
-// {
-//     return this->en == other->en && this->stepPin == other->stepPin;
-// }
+
+ bool Motor::operator==(Motor *other)
+ {
+     return this == other;
+ }

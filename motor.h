@@ -26,7 +26,7 @@ public:
     void disable();
     void printState();
 
-    // bool operator==(Motor *other);
+    bool operator==(Motor *other);
 
 
 private:

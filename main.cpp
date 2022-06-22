@@ -181,29 +181,16 @@ void checkRanges(float temperature, float salinity)
 //     }
 // }
 
-void manualMotorControl(bool isMotorA)
+void manualMotorControl(Motor *mtr)
 {
-    if(isMotorA) {
-        // Motor mtr = mtrA;
-        mtrA.setDirection(!INJECTA);
-        // mtr.setDirection((mtr == mtrA) ? !INJECTA : !INJECTB);
+    mtr->setDirection((mtr == &mtrA) ? !INJECTA : !INJECTB);
 
-        if (switchDown(switch4) && mtrA.currentState == Motor::idle) {
-            mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
-        } else if (!switchDown(switch4) && mtrA.currentState != Motor::idle) {
-            mtrA.currentState = Motor::deaccelerate;
-        }
-    } else {
-        // Motor mtr = mtrB;
-        mtrB.setDirection(!INJECTA);
-        // mtr.setDirection((mtr == mtrB) ? !INJECTA : !INJECTB);
-
-        if (switchDown(switch4) && mtrB.currentState == Motor::idle) {
-            mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
-        } else if (!switchDown(switch4) && mtrB.currentState != Motor::idle) {
-            mtrB.currentState = Motor::deaccelerate;
-        }
+    if (switchDown(switch4) && mtr->currentState == Motor::idle) {
+        mtr->initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
+    } else if (!switchDown(switch4) && mtr->currentState != Motor::idle) {
+        mtr->currentState = Motor::deaccelerate;
     }
+
 }
 
 
@@ -226,10 +213,9 @@ void run()
 
     errors = getErrorsforLCD(temp, sal, waterLevel);
     if (errors.empty()) {
-        lcd.printf("Temp: %.1f deg\nSal: %.1f V", temp, sal);
-        // displayDefaultLCD(Vtemp, Vsal, temp, sal);
+        displayOnLCD("Temp: %.1f deg\nSal: %.1f V", temp, sal);
     } else {
-        lcd.printf("%s", errors);
+        displayOnLCD(errors.c_str());
     }
 
     // Heater + red LED
@@ -292,7 +278,7 @@ void setup()
 {
     displayOnLCD("Setup Mode");
 
-    wait(0.5);
+    wait(2);
 
     displayOnLCD("Turn valves to\nposition R");
     buzzInterval(); buzzInterval();
@@ -307,7 +293,7 @@ void setup()
     mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
     mtrA.setDirection(INJECTA);
     while(!switchDown(switch3)) { // Confirmation
-        manualMotorControl(true);
+        manualMotorControl(&mtrA);
         timerMotor.reset();
         while (timerMotor.read() < 0.5) {
             mtrA.update(true);
@@ -321,24 +307,24 @@ void setup()
     mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
     mtrB.setDirection(INJECTA);
     while(!switchDown(switch3)) { // Confirmation
-        manualMotorControl(false);
+        manualMotorControl(&mtrB);
         timerMotor.reset();
         while (timerMotor.read() < 0.5) {
-            mtrB.update(true);
-        }
+             mtrB.update(true);
+         }
     }
     wait(0.5);
 
-    displayOnLCD("Turn valves to\nposition T");
-    buzzInterval(); buzzInterval();
+     displayOnLCD("Turn valves to\nposition T");
+     buzzInterval(); buzzInterval();
 
-    // // LCD: valves to position T
-    while(!switchDown(switch3)) { } // Confirmation
-    wait(0.5);
-    displayOnLCD("Setup Complete");
+     // LCD: valves to position T
+     while(!switchDown(switch3)) { } // Confirmation
+     wait(0.5);
+     displayOnLCD("Setup Complete");
 
-    // currentMode = Functional;
-    // timerInjectFreq.start();
+     currentMode = Functional;
+     timerInjectFreq.start();
 }
 
 
@@ -369,7 +355,7 @@ void refill()
         mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, 35*STEPS_FOR_1ML);
     }
 
-    displayOnLCD("Turn %s to\nposition R", valves);
+    displayOnLCD("Turn %s to\nposition R", valves.c_str());
 
     // Buzzer for two seconds while still checking for heater and green LED every second.
     buzzInterval();
@@ -392,7 +378,7 @@ void refill()
         }
     }
 
-    displayOnLCD("Turn %s to\nposition R", valves);
+    displayOnLCD("Turn %s to\nposition R", valves.c_str());
     buzzInterval();
     baseFunctions();
     buzzInterval();
