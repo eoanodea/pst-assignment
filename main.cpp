@@ -25,9 +25,6 @@
 // string p21="p21", p22="p22", p23="p23", p24="greenLED", p25="p25", p26="p26", p27="p27", p28="p28", p29="p29", p30="p30";
 // string p5="p5", p6="p6", p7="p7", p8="p8", p9="p9", p10="p10", p11="p11", p12="p12", p13="p13", p14="heater", p15="p15", p16="p16", p17="p17", p18="p18", p19="p19", p20="p20";
 
-// 1 if manual motor control is active, 0 when deactivated.
-bool manualMotor = true;
-
 // RS, ENABLE, A4, A5, A6, A7
 TextLCD lcd(p29, p30, p28, p27, p26, p25);
 
@@ -57,6 +54,12 @@ AnalogIn salinitySensor(p20);
 
 // Current water level of beaker
 int waterLevel = MIN_WATER;
+int injectorAlevel, injectorBlevel;
+
+enum ValvePosition { PositionR, PositionT };
+
+enum Mode { Setup, Functional, Refill };
+Mode currentMode = Setup;
 
 Timer timer;
 
@@ -97,7 +100,6 @@ bool switchDown(AnalogIn sw)
  */
 void activateBuzzer(bool on)
 {
-
     if(!toggleDown(toggle1)) {
         buzzer = false;
     } else {
@@ -105,28 +107,32 @@ void activateBuzzer(bool on)
     }
 }
 
+/**
+ * @brief Activates the buzzer for the specified interval
+ *
+ */
+void buzzInterval()
+{
+    wait(0.5);
+    activateBuzzer(true);
+    wait(0.5);
+    activateBuzzer(false);
+}
+
 string getErrorsforLCD(float temp, float sal, int waterLevel)
 {
     string err = "";
     if (waterLevel < MIN_WATER) {
         err += "Water level low ";
-        // activateBuzzer(true);
     } else if (waterLevel > MAX_WATER) {
         err += "Water level high";
-        // activateBuzzer(true);
-    } else {
-        // activateBuzzer(false);
     }
 
     if (sal < MIN_SAL) {
         err += "Low salinity    ";
-        // activateBuzzer(true);
 
     } else if (sal > MAX_SAL) {
         err += "High salinity   ";
-        // activateBuzzer(true);
-    } else {
-        // activateBuzzer(false);
     }
 
     // If less than than two messages have been added to the err string.
@@ -141,16 +147,39 @@ string getErrorsforLCD(float temp, float sal, int waterLevel)
     return err;
 }
 
-void displayDefaultLCD(float Vtemp, float Vsal, float temp, float sal)
+void displayOnLCD(const char* format, ...)
 {
-    if (!toggleDown(toggle1)) {
-        lcd.printf("Temp: %.1f deg\n", temp);
-        lcd.printf("Sal: %.1f ppt", sal);
-    } else {
-        lcd.printf("Temp: %.1f V\n", Vtemp);
-        lcd.printf("Sal: %.1f V", Vsal);
-    }
+    lcd.cls();
+
+    va_list args;
+    va_start(args, format);
+    lcd.printf(format, args);
+    va_end(args);
 }
+
+void checkTemperature(float temperature)
+{
+    heater = temperature <= DESIRED_TEMP;
+    redLED = heater;
+}
+
+void checkRanges(float temperature, float salinity)
+{
+    greenLED = temperature > MIN_TEMP && temperature < MAX_TEMP &&
+               salinity >= MIN_SAL && salinity <= MAX_SAL &&
+               waterLevel >= MIN_WATER && waterLevel <= MAX_WATER;
+}
+
+// void displayDefaultLCD(float Vtemp, float Vsal, float temp, float sal)
+// {
+//     if (!toggleDown(toggle1)) {
+//         lcd.printf("Temp: %.1f deg\n", temp);
+//         lcd.printf("Sal: %.1f ppt", sal);
+//     } else {
+//         lcd.printf("Temp: %.1f V\n", Vtemp);
+//         lcd.printf("Sal: %.1f V", Vsal);
+//     }
+// }
 
 void manualMotorControl()
 {
@@ -165,7 +194,6 @@ void manualMotorControl()
         mtrB.setDirection(!INJECTB);
     }
 
-    // If switch pushed down.
     if (switchDown(switch3) && mtrA.currentState == Motor::idle) {
         mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
         printf("Initialize motor A\r\n");
@@ -198,35 +226,26 @@ void run()
     // printf("Motor B ");
     // mtrB.printState();
 
-    // LCD
-    lcd.cls();
-    // displayDefaultLCD(Vtemp, Vsal, temp, sal);
     errors = getErrorsforLCD(temp, sal, waterLevel);
     if (errors.empty()) {
-        displayDefaultLCD(Vtemp, Vsal, temp, sal);
+        lcd.printf("Temp: %.1f deg\nSal: %.1f V", temp, sal);
+        // displayDefaultLCD(Vtemp, Vsal, temp, sal);
     } else {
         lcd.printf("%s", errors);
     }
 
-    // Heater
-    heater = temp <= DESIRED_TEMP;
+    // Heater + red LED
+    checkTemperature(temp);
 
-    // LEDs
-    redLED = heater;
-    greenLED = temp > MIN_TEMP && temp < MAX_TEMP&&
-        sal >= MIN_SAL && sal <= MAX_SAL &&
-        waterLevel >= MIN_WATER && waterLevel <= MAX_WATER;
+    // Green LED
+    checkRanges(temp, sal);
 
-    if (manualMotor) {
-        manualMotorControl();
-    } else {
-        if (sal < MIN_SAL && mtrA.currentState == Motor::idle) {
-            mtrA.setDirection(INJECTA);
-            mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
-        } else if (sal > MAX_SAL && mtrB.currentState == Motor::idle) {
-            mtrB.setDirection(INJECTB);
-            mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
-        }
+    if (sal < MIN_SAL && mtrA.currentState == Motor::idle) {
+        mtrA.setDirection(INJECTA);
+        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
+    } else if (sal > MAX_SAL && mtrB.currentState == Motor::idle) {
+        mtrB.setDirection(INJECTB);
+        mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
     }
 
     // print the percentage and 16 bit normalized values
@@ -234,10 +253,7 @@ void run()
         if (errors.empty()) {
             wait(1);
         } else {
-            wait(0.5);
-            activateBuzzer(true);
-            wait(0.5);
-            activateBuzzer(false);
+            buzzInterval();
         }
 
     } else {
@@ -265,12 +281,110 @@ void run()
     }
 }
 
+
+
+
+void setup()
+{
+      displayOnLCD("Setup Mode");
+    ValvePosition position = PositionT;
+    bool confirmed = false;
+
+    buzzInterval(); buzzInterval();
+
+    displayOnLCD("Turn valves to\nposition R");
+
+    // LCD: valves to position R
+    while(!switchDown(switch3)) { } // Confirmation
+    wait(0.5);
+    position = PositionR;
+    confirmed = false;
+
+
+    // Manually empty injectors
+    displayOnLCD("Empty Injectors");
+    while(!switchDown(switch3)) { // Confirmation
+        manualMotorControl();
+    }
+    wait(0.5);
+    confirmed = false;
+
+
+    buzzInterval(); buzzInterval();
+    displayOnLCD("Turn valves to\nposition T");
+
+    // LCD: valves to position T
+    while(!switchDown(switch3)) { } // Confirmation
+    wait(0.5);
+    displayOnLCD("Setup Complete");
+}
+
+// Basic functions that are activated in both Functional mode and Refill mode
+void baseFunctions()
+{
+    float temp, sal;
+    temp = get_temperature(temperatureSensor.read() * 3.3);
+    sal = get_salinity(salinitySensor.read() * 3.3 * (5.f / 3.f));
+    checkTemperature(temp);
+    checkRanges(temp, sal);
+}
+
+void refill()
+{
+    string valves;
+
+    if (injectorAlevel == 0 && injectorBlevel == 0) {
+        valves = "valves";
+        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
+    } else if (injectorAlevel == 0) {
+        valves = "valve A";
+        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
+    } else { // injectorBlevel == 0
+        valves = "valve B";
+        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
+    }
+
+    displayOnLCD("Turn %s to\nposition R", valves);
+
+    // Buzzer for two seconds while still checking for heater and green LED every second.
+    buzzInterval();
+    baseFunctions();
+    buzzInterval();
+
+    while (!switchDown(switch3)) {
+        baseFunctions();
+    }
+
+    
+
+    displayOnLCD("Turn %s to\nposition R", valves);
+    buzzInterval();
+    baseFunctions();
+    buzzInterval();
+
+    while (!switchDown(switch3)) {
+        baseFunctions();
+    }
+
+    currentMode = Functional;
+}
+
 int main(int argc, char const* argv[])
 {
     float timeElapsed = 0.;
     timer.start();
 
     while (1) {
-        run();
+        switch (currentMode) {
+            case Setup:
+                setup();
+                break;
+            case Functional:
+                run();
+                break;
+            case Refill:
+                refill();
+                break;
+        }
     }
 }
