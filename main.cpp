@@ -229,10 +229,12 @@ void run()
         if (sal < MIN_SAL && mtrA.currentState == Motor::idle) {
             mtrA.setDirection(INJECTA);
             mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
+            injectorAlevel--;
             numInjections++;
         } else if (sal > MAX_SAL && mtrB.currentState == Motor::idle) {
             mtrB.setDirection(INJECTB);
             mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
+            injectorBlevel--;
             numInjections++;
         }
     } else if (timePassed > 60) {
@@ -271,8 +273,29 @@ void run()
             activateBuzzer(false);
         }
     }
+
+    if (injectorAlevel == 0 || injectorBlevel == 0) {
+        currentMode = Refill;
+    }
 }
 
+void refillInjectors()
+{
+    mtrA.setDirection(!INJECTA);
+    mtrB.setDirection(!INJECTB);
+    displayOnLCD("Refilling...");
+    while (mtrA.currentState != Motor::idle && mtrB.currentState != Motor::idle) {
+        baseFunctions();
+        timerMotor.reset();
+        while (timerMotor.read() < 1) {
+            mtrA.update(mtrB.idle);
+            mtrB.update(true);
+        }
+    }
+
+    injectorAlevel = 35;
+    injectorBlevel = 35;
+}
 
 void setup()
 {
@@ -288,7 +311,7 @@ void setup()
     wait(0.5);
 
     // Manually empty injector A
-    displayOnLCD("Empty Injector A");
+    displayOnLCD("Empty Injector Awith Switch 8");
 
     mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
     mtrA.setDirection(INJECTA);
@@ -302,7 +325,7 @@ void setup()
     wait(0.5);
 
    // Manually empty injector A
-    displayOnLCD("Empty Injector B");
+    displayOnLCD("Empty Injector Bwith Switch 8");
 
     mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
     mtrB.setDirection(INJECTA);
@@ -315,16 +338,21 @@ void setup()
     }
     wait(0.5);
 
-     displayOnLCD("Turn valves to\nposition T");
-     buzzInterval(); buzzInterval();
+    // Fully fill injectors.
+    mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, 35*STEPS_FOR_1ML);
+    mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, 35*STEPS_FOR_1ML);
+    refillInjectors();
 
-     // LCD: valves to position T
-     while(!switchDown(switch3)) { } // Confirmation
-     wait(0.5);
-     displayOnLCD("Setup Complete");
+    displayOnLCD("Turn valves to\nposition T");
+    buzzInterval(); buzzInterval();
 
-     currentMode = Functional;
-     timerInjectFreq.start();
+    // LCD: valves to position T
+    while(!switchDown(switch3)) { } // Confirmation
+    wait(0.5);
+    displayOnLCD("Setup Complete");
+
+    currentMode = Functional;
+    timerInjectFreq.start();
 }
 
 
@@ -362,27 +390,19 @@ void refill()
     baseFunctions();
     buzzInterval();
 
+    // Wait for confirmation.
     while (!switchDown(switch3)) {
         baseFunctions();
     }
 
-    mtrA.setDirection(!INJECTA);
-    mtrB.setDirection(!INJECTB);
-    displayOnLCD("Refilling...");
-    while (mtrA.currentState != Motor::idle && mtrB.currentState != Motor::idle) {
-        baseFunctions();
-        timerMotor.reset();
-        while (timerMotor.read() < 1) {
-            mtrA.update(mtrB.idle);
-            mtrB.update(true);
-        }
-    }
+    refillInjectors();
 
-    displayOnLCD("Turn %s to\nposition R", valves.c_str());
+    displayOnLCD("Turn %s to\nposition T", valves.c_str());
     buzzInterval();
     baseFunctions();
     buzzInterval();
 
+    // Wait for confirmation.
     while (!switchDown(switch3)) {
         baseFunctions();
     }
