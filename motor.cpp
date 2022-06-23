@@ -44,6 +44,7 @@ void Motor::initializeMove(float microstep, int speed)
     initializeMove(microstep);
 
     //  Speed or times per second
+    this->speed = speed;
     this->steps = -1;
     this->stepsToStop = 0;
     this->accRate = 100;
@@ -55,6 +56,7 @@ void Motor::initializeMove(float microstep, int speed, int steps)
     initializeMove(microstep);
 
     //  Speed or times per second
+    this->speed = speed;
     this->steps = steps;
     this->stepsToStop = ceil(steps * 0.2);
     this->accRate =  ceil((float) (speed - currentSpeed) / stepsToStop);
@@ -77,7 +79,7 @@ void Motor::update(bool doWait)
 
         if (currentState == Motor::accelerate) {
             currentSpeed += accRate;
-            if (currentSpeed >= MAX_SPEED) {
+            if (currentSpeed >= speed) {
                 currentState = Motor::constant;
             }
         } else if (currentState == Motor::constant) {

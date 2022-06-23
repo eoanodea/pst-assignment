@@ -5,7 +5,7 @@
 
 #define MICROSTEPS_PER_STEP 16
 #define MAX_SPEED 4000
-#define MIN_SPEED 100
+#define MIN_SPEED 10
 
 class Motor
 {
@@ -32,7 +32,7 @@ public:
 private:
 
     DigitalOut direction, stepPin;
-    int steps, stepsToStop;
+    int steps, stepsToStop, speed;
 
     DigitalOut en, led;
     BusOut microstepping;

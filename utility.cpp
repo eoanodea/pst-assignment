@@ -3,6 +3,7 @@
 #include "motor.h"
 #include "TextLCD.h"
 #include <string>
+#include <cstdarg>
 
 float get_temperature(float Vin)
 {
@@ -93,10 +94,13 @@ void displayOnLCD(const char* format, ...)
 {
     lcd.cls();
 
+    char buffer[32]= {0};
     va_list args;
     va_start(args, format);
-    lcd.printf(format, args);
+    vsnprintf(buffer, 32, format, args);
     va_end(args);
+    
+    lcd.printf("%s", buffer);
 }
 
 void checkTemperature(float temperature)

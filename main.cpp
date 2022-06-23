@@ -64,7 +64,7 @@ void manualMotorControl(Motor *mtr)
     mtr->setDirection((mtr == &mtrA) ? INJECTA : INJECTB);
 
     if (switchDown(switch4) && mtr->currentState == Motor::idle) {
-        mtr->initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
+        mtr->initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED-1000);
     } else if (!switchDown(switch4) && mtr->currentState != Motor::idle) {
         mtr->currentState = Motor::deaccelerate;
     }
@@ -90,11 +90,14 @@ void run()
     // mtrB.printState();
 
     errors = getErrorsforLCD(temp, sal, waterLevel);
-    if (errors.empty()) {
-        displayOnLCD("Temp: %.1f deg\nSal: %.1f V", temp, sal);
-    } else {
-        displayOnLCD(errors.c_str());
-    }
+    lcd.cls();
+    lcd.printf("Temp: %.1f deg\nSal: %.1f ppt", temp, sal);
+    // if (errors.empty()) {
+        // lcd.cls();
+    //     lcd.printf("Temp: %.1f deg\nSal: %.1f ppt", temp, sal);
+    // } else {
+    //     displayOnLCD(errors.c_str());
+    // }
 
     // Heater + red LED
     checkTemperature(temp);
@@ -105,14 +108,14 @@ void run()
     float timePassed = timerInjectFreq.read();
     if (timePassed < 60 && numInjections < 5) {
         if (sal < MIN_SAL && mtrA.currentState == Motor::idle) {
-            mtrA.setDirection(INJECTA);
-            mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
-            injectorAlevel--;
+            mtrB.setDirection(INJECTB);
+            mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED-1000, STEPS_FOR_1ML_MTRB);
+            injectorBlevel--;
             numInjections++;
         } else if (sal > MAX_SAL && mtrB.currentState == Motor::idle) {
-            mtrB.setDirection(INJECTB);
-            mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML);
-            injectorBlevel--;
+            mtrA.setDirection(INJECTA);
+            mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED-1000, STEPS_FOR_1ML_MTRA);
+            injectorAlevel--;
             numInjections++;
         }
     } else if (timePassed > 60) {
@@ -217,8 +220,6 @@ void setup()
     wait(0.5);
 
     // Fully fill injectors.
-    mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, 35*STEPS_FOR_1ML);
-    mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, 35*STEPS_FOR_1ML);
     refillInjectors();
 
     displayOnLCD("Turn valves to\nposition T");
@@ -239,16 +240,18 @@ void refill()
 {
     string valves;
 
+    printf("%i %i \r\n", injectorAlevel, injectorBlevel);
+    
     if (injectorAlevel == 0 && injectorBlevel == 0) {
         valves = "valves";
-        mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, 35*STEPS_FOR_1ML);
-        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, 35*STEPS_FOR_1ML);
+        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
+        mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
     } else if (injectorAlevel == 0) {
         valves = "valve A";
-        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, 35*STEPS_FOR_1ML);
+        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
     } else { // injectorBlevel == 0
         valves = "valve B";
-        mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, 35*STEPS_FOR_1ML);
+        mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
     }
 
     displayOnLCD("Turn %s to\nposition R", valves.c_str());
@@ -281,7 +284,7 @@ void refill()
 
 int main(int argc, char const* argv[])
 {
-    printf("\r\n\r\n---------------------\r\n\r\n");
+    printf("\r\n\r\n----------V1.6-----------\r\n\r\n");
 
     float timeElapsed = 0.;
     timerMotor.start();
