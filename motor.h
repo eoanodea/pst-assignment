@@ -5,7 +5,7 @@
 
 #define MICROSTEPS_PER_STEP 16
 #define MAX_SPEED 4000
-#define MIN_SPEED 500
+#define MIN_SPEED 100
 
 class Motor
 {
@@ -17,8 +17,8 @@ public:
 
     Motor(PinName _en, PinName m0, PinName m1, PinName m2, PinName _stepPin, PinName dir, PinName _led);
 
-    void initializeMove(float microstep, float speed);
-    void initializeMove(float microstep, float speed, int steps);
+    void initializeMove(float microstep, int speed);
+    void initializeMove(float microstep, int speed, int steps);
     void setDirection(int dir);
     void update(bool wait);
 

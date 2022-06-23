@@ -1,26 +1,9 @@
 #include "mbed.h"
 #include "TextLCD.h"
+#include "utility.h"
 #include "motor.h"
 #include <string>
 #include <math.h>
-
-// Injection direction for Motor A
-#define INJECTA 1
-
-// Injection direction for Motor B
-#define INJECTB 0
-
-#define STEPS_FOR_1ML 250
-
-// Values defined in requirements.
-#define MIN_SAL 7
-#define MAX_SAL 14
-#define MIN_TEMP 35
-#define MAX_TEMP 42
-#define DESIRED_TEMP 37
-#define MIN_WATER 250
-#define MAX_WATER 450
-#define MSG_TIME 3
 
 // string p21="p21", p22="p22", p23="p23", p24="greenLED", p25="p25", p26="p26", p27="p27", p28="p28", p29="p29", p30="p30";
 // string p5="p5", p6="p6", p7="p7", p8="p8", p9="p9", p10="p10", p11="p11", p12="p12", p13="p13", p14="heater", p15="p15", p16="p16", p17="p17", p18="p18", p19="p19", p20="p20";
@@ -63,112 +46,7 @@ Timer timerMotor, timerInjectFreq;
 
 int numInjections = 0;
 
-float get_temperature(float Vin)
-{
-    return -30.79759812 * Vin + 83.90646865;
-}
 
-float get_salinity(float Vin)
-{
-    return 13.40769944 * exp(0.39797502 * Vin) - 12.3251654;
-}
-
-/**
- * @brief Return true if the toggle is down, false if up
- *
- * @param tgl Toggle
- */
-bool toggleDown(DigitalIn tgl)
-{
-    return tgl;
-}
-
-/**
- * @brief Return true if the switch is pressed down, false else
- *
- * @param sw Switch
- */
-bool switchDown(DigitalIn sw)
-{
-    return !sw;
-}
-
-/**
- * @brief Activates / Deactivates the buzzer, if toggle 1 is switched on
- *
- * @param on Boolean to switch it on or off
- */
-void activateBuzzer(bool on)
-{
-    if(!toggleDown(toggle1)) {
-        buzzer = false;
-    } else {
-        buzzer = on;
-    }
-}
-
-/**
- * @brief Activates the buzzer for the specified interval
- *
- */
-void buzzInterval()
-{
-    wait(0.5);
-    activateBuzzer(true);
-    wait(0.5);
-    activateBuzzer(false);
-}
-
-string getErrorsforLCD(float temp, float sal, int waterLevel)
-{
-    string err = "";
-    if (waterLevel < MIN_WATER) {
-        err += "Water level low ";
-    } else if (waterLevel > MAX_WATER) {
-        err += "Water level high";
-    }
-
-    if (sal < MIN_SAL) {
-        err += "Low salinity    ";
-
-    } else if (sal > MAX_SAL) {
-        err += "High salinity   ";
-    }
-
-    // If less than than two messages have been added to the err string.
-    if (err.length() <= 16) {
-        if (temp <= MIN_TEMP) {
-            err += "Temperature low ";
-        } else if (temp >= MAX_TEMP) {
-            err += "Temperature high";
-        }
-    }
-
-    return err;
-}
-
-void displayOnLCD(const char* format, ...)
-{
-    lcd.cls();
-
-    va_list args;
-    va_start(args, format);
-    lcd.printf(format, args);
-    va_end(args);
-}
-
-void checkTemperature(float temperature)
-{
-    heater = temperature <= DESIRED_TEMP;
-    redLED = heater;
-}
-
-void checkRanges(float temperature, float salinity)
-{
-    greenLED = temperature > MIN_TEMP && temperature < MAX_TEMP &&
-               salinity >= MIN_SAL && salinity <= MAX_SAL &&
-               waterLevel >= MIN_WATER && waterLevel <= MAX_WATER;
-}
 
 // void displayDefaultLCD(float Vtemp, float Vsal, float temp, float sal)
 // {
@@ -183,7 +61,7 @@ void checkRanges(float temperature, float salinity)
 
 void manualMotorControl(Motor *mtr)
 {
-    mtr->setDirection((mtr == &mtrA) ? !INJECTA : !INJECTB);
+    mtr->setDirection((mtr == &mtrA) ? INJECTA : INJECTB);
 
     if (switchDown(switch4) && mtr->currentState == Motor::idle) {
         mtr->initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
@@ -240,7 +118,7 @@ void run()
     } else if (timePassed > 60) {
         timerInjectFreq.reset();
         numInjections = 0;
-    }
+    } 
 
     // print the percentage and 16 bit normalized values
     if (mtrA.currentState == Motor::idle && mtrB.currentState == Motor::idle) {
@@ -311,11 +189,11 @@ void setup()
     wait(0.5);
 
     // Manually empty injector A
-    displayOnLCD("Empty Injector Awith Switch 8");
 
     mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
     mtrA.setDirection(INJECTA);
     while(!switchDown(switch3)) { // Confirmation
+        displayOnLCD("Empty Injector Awith Switch 8");
         manualMotorControl(&mtrA);
         timerMotor.reset();
         while (timerMotor.read() < 0.5) {
@@ -325,11 +203,11 @@ void setup()
     wait(0.5);
 
    // Manually empty injector A
-    displayOnLCD("Empty Injector Bwith Switch 8");
 
     mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
-    mtrB.setDirection(INJECTA);
+    mtrB.setDirection(INJECTB);
     while(!switchDown(switch3)) { // Confirmation
+        displayOnLCD("Empty Injector Bwith Switch 8");
         manualMotorControl(&mtrB);
         timerMotor.reset();
         while (timerMotor.read() < 0.5) {
@@ -355,16 +233,6 @@ void setup()
     timerInjectFreq.start();
 }
 
-
-// Basic functions that are activated in both Functional mode and Refill mode
-void baseFunctions()
-{
-    float temp, sal;
-    temp = get_temperature(temperatureSensor.read() * 3.3);
-    sal = get_salinity(salinitySensor.read() * 3.3 * (5.f / 3.f));
-    checkTemperature(temp);
-    checkRanges(temp, sal);
-}
 
 
 void refill()

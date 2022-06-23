@@ -39,7 +39,7 @@ void Motor::initializeMove(float microstep)
 }
 
 // Activate motor with the switch (unknown number of steps)
-void Motor::initializeMove(float microstep, float speed)
+void Motor::initializeMove(float microstep, int speed)
 {
     initializeMove(microstep);
 
@@ -50,14 +50,15 @@ void Motor::initializeMove(float microstep, float speed)
 }
 
 // Activate motor for a given number of steps with 20% acceleration and 20% deacceleration
-void Motor::initializeMove(float microstep, float speed, int steps)
+void Motor::initializeMove(float microstep, int speed, int steps)
 {
     initializeMove(microstep);
 
     //  Speed or times per second
     this->steps = steps;
-    this->stepsToStop = (steps * 0.2);
-    this->accRate = (MAX_SPEED - currentSpeed) / stepsToStop;
+    this->stepsToStop = ceil(steps * 0.2);
+    this->accRate =  ceil((float) (speed - currentSpeed) / stepsToStop);
+    printf("%d\r\n", this->accRate);
 }
 
 void Motor::update(bool doWait)
