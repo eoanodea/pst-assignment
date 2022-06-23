@@ -65,21 +65,21 @@ void buzzInterval()
 string getErrorsforLCD(float temp, float sal, int waterLevel)
 {
     string err = "";
-    if (waterLevel < MIN_WATER) {
-        err += "Water level low ";
-    } else if (waterLevel > MAX_WATER) {
-        err += "Water level high";
-    }
 
-    if (sal < MIN_SAL) {
-        err += "Low salinity    ";
+    if (waterLevel > MAX_WATER) {
+        lcd.cls();
+        lcd.printf("Water level highEmpty tank");
+        while (!switchDown(switch3)) {
+            baseFunctions();
+        }
+    } else {
+        if (sal < MIN_SAL) {
+            err += "Low salinity    ";
 
-    } else if (sal > MAX_SAL) {
-        err += "High salinity   ";
-    }
+        } else if (sal > MAX_SAL) {
+            err += "High salinity   ";
+        }
 
-    // If less than than two messages have been added to the err string.
-    if (err.length() <= 16) {
         if (temp <= MIN_TEMP) {
             err += "Temperature low ";
         } else if (temp >= MAX_TEMP) {

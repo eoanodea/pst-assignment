@@ -1,4 +1,4 @@
-# Project Systems Testing Assignment
+# PST Assignment
 
 Designing and building a programme to run on an mbed OS Microcontroller for a simulated insulin pump.
 

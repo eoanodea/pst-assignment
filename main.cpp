@@ -241,7 +241,7 @@ void refill()
     string valves;
 
     printf("%i %i \r\n", injectorAlevel, injectorBlevel);
-    
+
     if (injectorAlevel == 0 && injectorBlevel == 0) {
         valves = "valves";
         mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
