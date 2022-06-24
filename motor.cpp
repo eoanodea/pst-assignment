@@ -66,7 +66,6 @@ void Motor::initializeMove(float microstep, int speed, int steps)
 void Motor::update(bool doWait)
 {
     if (currentState != Motor::idle) {
-        float period = 1 / currentSpeed;
         steps -= 1;
 
         // Speed or times per second

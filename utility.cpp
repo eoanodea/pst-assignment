@@ -1,4 +1,5 @@
 #include "utility.h"
+#include "modules.h"
 #include "mbed.h"
 #include "motor.h"
 #include "TextLCD.h"
@@ -35,6 +36,11 @@ bool switchDown(DigitalIn sw)
     return !sw;
 }
 
+void waitForConfirmation()
+{
+    while(!switchDown(switch3)) { } // Confirmation
+    wait(1);
+}
 
 /**
  * @brief Activates / Deactivates the buzzer, if toggle 1 is switched on
@@ -65,21 +71,20 @@ void buzzInterval()
 string getErrorsforLCD(float temp, float sal, int waterLevel)
 {
     string err = "";
-    if (waterLevel < MIN_WATER) {
-        err += "Water level low ";
-    } else if (waterLevel > MAX_WATER) {
-        err += "Water level high";
-    }
+    if (waterLevel > MAX_WATER) {
+        lcd.cls();
+        lcd.printf("Water level highEmpty tank");
+        while (!switchDown(switch3)) {
+            baseFunctions();
+        }
+    } else {
+        if (sal < MIN_SAL) {
+            err += "Low salinity    ";
 
-    if (sal < MIN_SAL) {
-        err += "Low salinity    ";
+        } else if (sal > MAX_SAL) {
+            err += "High salinity   ";
+        }
 
-    } else if (sal > MAX_SAL) {
-        err += "High salinity   ";
-    }
-
-    // If less than than two messages have been added to the err string.
-    if (err.length() <= 16) {
         if (temp <= MIN_TEMP) {
             err += "Temperature low ";
         } else if (temp >= MAX_TEMP) {
@@ -99,7 +104,7 @@ void displayOnLCD(const char* format, ...)
     va_start(args, format);
     vsnprintf(buffer, 32, format, args);
     va_end(args);
-    
+
     lcd.printf("%s", buffer);
 }
 
@@ -109,7 +114,7 @@ void checkTemperature(float temperature)
     redLED = heater;
 }
 
-void checkRanges(float temperature, float salinity)
+void checkRanges(float temperature, float salinity, int waterLevel)
 {
     greenLED = temperature > MIN_TEMP && temperature < MAX_TEMP &&
                salinity >= MIN_SAL && salinity <= MAX_SAL &&
@@ -123,5 +128,5 @@ void baseFunctions()
     temp = get_temperature(temperatureSensor.read() * 3.3);
     sal = get_salinity(salinitySensor.read() * 3.3 * (5.f / 3.f));
     checkTemperature(temp);
-    checkRanges(temp, sal);
+    checkRanges(temp, sal, waterLevel);
 }

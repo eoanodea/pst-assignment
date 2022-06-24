@@ -5,3 +5,7 @@ projectfiles
 mbed-os
 BUILD
 .vscode
+
+.ipynb_checkpoints
+*.csv
+*.ipynb

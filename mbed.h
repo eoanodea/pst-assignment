@@ -21,7 +21,7 @@ inline void wait(float x)
 }
 
 /**
- * @brief Stub for AnalogIn
+ * @brief Mockup for AnalogIn
  */
 class AnalogIn
 {
@@ -45,7 +45,30 @@ private:
 
 
 /**
- * @brief Stub for DigitalOut
+ * @brief Mockup for DigitalIn
+ */
+struct DigitalIn final
+{
+    DigitalIn() = default;
+
+    DigitalIn(string val)
+    {
+        pin = val;
+    }
+
+    operator bool() const
+    {
+        // Randomly 0 or 1
+        return rand() % 2;
+    }
+
+private:
+    string pin;
+};
+
+
+/**
+ * @brief Mockup for DigitalOut
  */
 struct DigitalOut final
 {
@@ -57,7 +80,7 @@ struct DigitalOut final
         pin = val;
     }
 
-    explicit operator bool() const
+    operator bool() const
     {
         return _value;
     }
@@ -65,8 +88,13 @@ struct DigitalOut final
     DigitalOut& operator=(const bool val)
     {
         _value = val;
-        printf("%s = %i\n", pin.c_str(), _value);
+        // printf("%s = %i\n", pin.c_str(), _value);
         return *this;
+    }
+
+    bool operator==(const bool other)
+    {
+        return _value == other;
     }
 
 private:
@@ -76,7 +104,7 @@ private:
 
 
 /**
- * @brief Stub for BusOut
+ * @brief Mockup for BusOut
  */
 struct BusOut final
 {
@@ -104,7 +132,7 @@ private:
 
 
 /**
- * @brief Stub for Timer
+ * @brief Mockup for Timer
  *
  */
 class Timer
