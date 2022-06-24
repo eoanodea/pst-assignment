@@ -60,17 +60,17 @@ void Motor::initializeMove(float microstep, int speed, int steps)
     this->steps = steps;
     this->stepsToStop = ceil(steps * 0.2);
     this->accRate =  ceil((float) (speed - currentSpeed) / stepsToStop);
-    printf("%d\r\n", this->accRate);
+    printf("%d %d %d %d\r\n", this->speed, this->steps, this->stepsToStop, this->accRate);
 }
 
 void Motor::update(bool doWait)
 {
     if (currentState != Motor::idle) {
         steps -= 1;
+        stepPin = !stepPin;
 
         // Speed or times per second
         if (doWait) {
-            stepPin = !stepPin;
             wait(1/currentSpeed);
         }
 

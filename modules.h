@@ -21,6 +21,7 @@
 // Values defined in requirements.
 #define MIN_SAL 7
 #define MAX_SAL 10
+#define DESIRED_SAL 8.5
 #define MIN_TEMP 35
 #define MAX_TEMP 42
 #define DESIRED_TEMP 37

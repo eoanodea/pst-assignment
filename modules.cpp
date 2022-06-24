@@ -61,7 +61,7 @@ void manualMotorControl(Motor *mtr)
     mtr->setDirection((mtr == &mtrA) ? INJECTA : INJECTB);
 
     if (switchDown(switch4) && mtr->currentState == Motor::idle) {
-        mtr->initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED-1000);
+        mtr->initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
     } else if (!switchDown(switch4) && mtr->currentState != Motor::idle) {
         mtr->currentState = Motor::deaccelerate;
     }
@@ -104,14 +104,16 @@ void run()
 
     float timePassed = timerInjectFreq.read();
     if (timePassed < 60 && numInjections < 5) {
-        if (sal < MIN_SAL && mtrA.currentState == Motor::idle) {
+        if (sal < DESIRED_SAL && mtrB.currentState == Motor::idle) {
+            printf("Inject  B\r\n");
             mtrB.setDirection(INJECTB);
-            mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED-1000, STEPS_FOR_1ML_MTRB);
+            mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRB);
             injectorBlevel--;
             numInjections++;
-        } else if (sal > MAX_SAL && mtrB.currentState == Motor::idle) {
+        } else if (sal >= DESIRED_SAL && mtrA.currentState == Motor::idle) {
             mtrA.setDirection(INJECTA);
-            mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED-1000, STEPS_FOR_1ML_MTRA);
+            printf("Inject  A\r\n");
+            mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRA);
             injectorAlevel--;
             numInjections++;
         }
@@ -152,7 +154,7 @@ void run()
         }
     }
 
-    if (injectorAlevel == 0 || injectorBlevel == 0) {
+    if ((mtrA.currentState == mtrA.idle && injectorAlevel == 0) || (mtrB.currentState == mtrB.idle && injectorBlevel == 0)) {
         currentMode = Refill;
     }
 }
@@ -161,8 +163,15 @@ void refillInjectors()
 {
     mtrA.setDirection(!INJECTA);
     mtrB.setDirection(!INJECTB);
-    while (mtrA.currentState != Motor::idle && mtrB.currentState != Motor::idle) {
-        displayOnLCD("Refilling...");
+
+
+    printf("Motor A %i ", mtrA.currentSpeed);
+    mtrA.printState();
+    printf("Motor B %i ", mtrB.currentSpeed);
+    mtrB.printState();
+
+    displayOnLCD("Refilling...");
+    while (mtrA.currentState != Motor::idle || mtrB.currentState != Motor::idle) {
         baseFunctions();
         timerMotor.reset();
         while (timerMotor.read() < 1) {
@@ -189,7 +198,7 @@ void setup()
 
     // Manually empty injector A
 
-    mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
+    mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED+1000);
     mtrA.setDirection(INJECTA);
     while(!switchDown(switch3)) { // Confirmation
         displayOnLCD("Empty Injector Awith Switch 8");
@@ -203,7 +212,7 @@ void setup()
 
    // Manually empty injector A
 
-    mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
+    mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED+1000);
     mtrB.setDirection(INJECTB);
     while(!switchDown(switch3)) { // Confirmation
         displayOnLCD("Empty Injector Bwith Switch 8");
@@ -239,6 +248,7 @@ void refill()
 
     if (injectorAlevel == 0 && injectorBlevel == 0) {
         valves = "valves";
+
         mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
         mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
     } else if (injectorAlevel == 0) {
@@ -274,4 +284,5 @@ void refill()
     }
 
     currentMode = Functional;
+    timerInjectFreq.reset();
 }

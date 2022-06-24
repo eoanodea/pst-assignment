@@ -4,7 +4,7 @@
 #include "mbed.h"
 
 #define MICROSTEPS_PER_STEP 16
-#define MAX_SPEED 4000
+#define MAX_SPEED 3000
 #define MIN_SPEED 10
 
 class Motor
