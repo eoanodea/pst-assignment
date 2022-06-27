@@ -7,7 +7,7 @@ Mode currentMode = Setup;
 
 int main(int argc, char const* argv[])
 {
-    printf("\r\n\r\n----------V3.3-----------\r\n\r\n");
+    // printf("\r\n\r\n----------V3.3-----------\r\n\r\n");
 
     float timeElapsed = 0.;
     timerMotor.start();

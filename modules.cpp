@@ -3,6 +3,7 @@
 #include "TextLCD.h"
 #include "utility.h"
 #include "motor.h"
+
 #include <string>
 #include <math.h>
 
@@ -65,7 +66,6 @@ void manualMotorControl(Motor *mtr)
     } else if (!switchDown(switch4) && mtr->currentState != Motor::idle) {
         mtr->currentState = Motor::deaccelerate;
     }
-
 }
 
 
@@ -90,7 +90,7 @@ void run()
     lcd.cls();
     lcd.printf("Temp: %.1f deg\nSal: %.1f ppt", temp, sal);
     // if (errors.empty()) {
-        // lcd.cls();
+    //     lcd.cls();
     //     lcd.printf("Temp: %.1f deg\nSal: %.1f ppt", temp, sal);
     // } else {
     //     displayOnLCD(errors.c_str());
@@ -103,21 +103,19 @@ void run()
     checkRanges(temp, sal, waterLevel);
 
     float timePassed = timerInjectFreq.read();
-    if (timePassed < 60 && numInjections < 5) {
+    if (timePassed < 30 && numInjections < 5) {
         if (sal < DESIRED_SAL && mtrB.currentState == Motor::idle) {
-            printf("Inject  B\r\n");
             mtrB.setDirection(INJECTB);
             mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRB);
             injectorBlevel--;
             numInjections++;
         } else if (sal >= DESIRED_SAL && mtrA.currentState == Motor::idle) {
             mtrA.setDirection(INJECTA);
-            printf("Inject  A\r\n");
             mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRA);
             injectorAlevel--;
             numInjections++;
         }
-    } else if (timePassed > 60) {
+    } else if (timePassed >= 30) {
         timerInjectFreq.reset();
         numInjections = 0;
     }
@@ -164,10 +162,9 @@ void refillInjectors()
     mtrA.setDirection(!INJECTA);
     mtrB.setDirection(!INJECTB);
 
-
-    printf("Motor A %i ", mtrA.currentSpeed);
+    // printf("Motor A %i ", mtrA.currentSpeed);
     mtrA.printState();
-    printf("Motor B %i ", mtrB.currentSpeed);
+    // printf("Motor B %i ", mtrB.currentSpeed);
     mtrB.printState();
 
     displayOnLCD("Refilling...");
@@ -179,9 +176,6 @@ void refillInjectors()
             mtrB.update(true);
         }
     }
-
-    injectorAlevel = 35;
-    injectorBlevel = 35;
 }
 
 void setup()
@@ -228,6 +222,8 @@ void setup()
     mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
     mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
     refillInjectors();
+    injectorAlevel = 35;
+    injectorBlevel = 35;
 
     displayOnLCD("Turn valves to\nposition T");
     buzzInterval(); buzzInterval();
@@ -244,19 +240,22 @@ void refill()
 {
     string valves;
 
-    printf("%i %i \r\n", injectorAlevel, injectorBlevel);
+    // printf("%i %i \r\n", injectorAlevel, injectorBlevel);
 
     if (injectorAlevel == 0 && injectorBlevel == 0) {
         valves = "valves";
-
         mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
         mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
+        injectorAlevel = 35;
+        injectorBlevel = 35;
     } else if (injectorAlevel == 0) {
         valves = "valve A";
         mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
+        injectorAlevel = 35;
     } else { // injectorBlevel == 0
         valves = "valve B";
         mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
+        injectorBlevel = 35;
     }
 
     displayOnLCD("Turn %s to\nposition R", valves.c_str());

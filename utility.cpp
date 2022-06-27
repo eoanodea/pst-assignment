@@ -110,7 +110,7 @@ void displayOnLCD(const char* format, ...)
 
 void checkTemperature(float temperature)
 {
-    heater = temperature <= DESIRED_TEMP;
+    heater = temperature < DESIRED_TEMP;
     redLED = heater;
 }
 

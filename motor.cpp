@@ -60,7 +60,7 @@ void Motor::initializeMove(float microstep, int speed, int steps)
     this->steps = steps;
     this->stepsToStop = ceil(steps * 0.2);
     this->accRate =  ceil((float) (speed - currentSpeed) / stepsToStop);
-    printf("%d %d %d %d\r\n", this->speed, this->steps, this->stepsToStop, this->accRate);
+    // printf("%d %d %d %d\r\n", this->speed, this->steps, this->stepsToStop, this->accRate);
 }
 
 void Motor::update(bool doWait)
