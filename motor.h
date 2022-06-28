@@ -10,7 +10,13 @@
 class Motor
 {
 public:
-    enum State { accelerate, constant, deaccelerate, idle };
+    enum State
+    {
+        accelerate,
+        constant,
+        deaccelerate,
+        idle
+    };
     State currentState;
     float currentSpeed;
     int accRate;
@@ -28,9 +34,7 @@ public:
 
     bool operator==(Motor *other);
 
-
 private:
-
     DigitalOut direction, stepPin;
     int steps, stepsToStop, speed;
 
@@ -40,8 +44,8 @@ private:
     void initializeMove(float microstep);
     void setResolution(float microstep);
 
-    //DigitalOut stepPin;
-    //DigitalOut direction;
+    // DigitalOut stepPin;
+    // DigitalOut direction;
 };
 
 #endif /* MBED_Motor_H */

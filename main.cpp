@@ -5,7 +5,7 @@
 
 Mode currentMode = Setup;
 
-int main(int argc, char const* argv[])
+int main(int argc, char const *argv[])
 {
     // printf("\r\n\r\n----------V3.3-----------\r\n\r\n");
 
@@ -18,17 +18,19 @@ int main(int argc, char const* argv[])
     // injectorAlevel = 35;
     // injectorBlevel = 35;
 
-    while (1) {
-        switch (currentMode) {
-            case Setup:
-                setup();
-                break;
-            case Functional:
-                run();
-                break;
-            case Refill:
-                refill();
-                break;
+    while (1)
+    {
+        switch (currentMode)
+        {
+        case Setup:
+            setup();
+            break;
+        case Functional:
+            run();
+            break;
+        case Refill:
+            refill();
+            break;
         }
     }
 }

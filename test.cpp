@@ -9,18 +9,18 @@ Mode currentMode = Setup;
 TEST(TEMP)
 {
     float errorMargin = 1.;
-    CHECK(get_temperature(2.7) > 0-errorMargin && get_temperature(2.7) < 0+errorMargin);
-    CHECK(get_temperature(1.82) > 28-errorMargin && get_temperature(1.82) < 28+errorMargin);
-    CHECK(get_temperature(1.47) > 38.5-errorMargin && get_temperature(1.47) < 38.5+errorMargin);
-    CHECK(get_temperature(1.35) > 42.5-errorMargin && get_temperature(1.35) < 42.5+errorMargin);
+    CHECK(get_temperature(2.7) > 0 - errorMargin && get_temperature(2.7) < 0 + errorMargin);
+    CHECK(get_temperature(1.82) > 28 - errorMargin && get_temperature(1.82) < 28 + errorMargin);
+    CHECK(get_temperature(1.47) > 38.5 - errorMargin && get_temperature(1.47) < 38.5 + errorMargin);
+    CHECK(get_temperature(1.35) > 42.5 - errorMargin && get_temperature(1.35) < 42.5 + errorMargin);
 }
 
 TEST(SAL)
 {
     float errorMargin = 1.;
-    CHECK(get_salinity(0.56) > 4.4-errorMargin && get_salinity(0.56) < 4.4+errorMargin);
-    CHECK(get_salinity(1.03) > 8.2-errorMargin && get_salinity(1.03) < 8.2+errorMargin);
-    CHECK(get_salinity(1.8) > 15.3-errorMargin && get_salinity(1.8) < 15.3+errorMargin);
+    CHECK(get_salinity(0.56) > 4.4 - errorMargin && get_salinity(0.56) < 4.4 + errorMargin);
+    CHECK(get_salinity(1.03) > 8.2 - errorMargin && get_salinity(1.03) < 8.2 + errorMargin);
+    CHECK(get_salinity(1.8) > 15.3 - errorMargin && get_salinity(1.8) < 15.3 + errorMargin);
 }
 
 TEST(HEATER)
@@ -83,7 +83,51 @@ TEST(RNG)
     CHECK_EQUAL(0, greenLED);
 }
 
+TEST(LCD)
+{
+    string errors;
+    // Temperature, salinity, water level: under range (-1), in range (0), above range (1)
+    // float temp, float sal, int waterLevel
+    // water level is always in range because it is not returned in the error string
+
+    // 0,0,0
+    errors = getErrorsforLCD(37, 8.5, 450);
+    CHECK_EQUAL("", errors);
+
+    // 0,-1,0
+    errors = getErrorsforLCD(37, 4, 450);
+    CHECK_EQUAL("Low salinity    ", errors);
+
+    // 0, 1, 0
+    errors = getErrorsforLCD(37, 14, 450);
+    CHECK_EQUAL("High salinity   ", errors);
+
+    // -1,-1,0
+    errors = getErrorsforLCD(34, 4, 450);
+    CHECK_EQUAL("Low salinity    Temperature low ", std::string(errors));
+
+    //-1,1,0
+    errors = getErrorsforLCD(34, 14, 450);
+    CHECK_EQUAL("High salinity   Temperature low ", errors);
+
+    //-1,0,0
+    errors = getErrorsforLCD(34, 8.5, 450);
+    CHECK_EQUAL("Temperature low ", errors);
+
+    // 1,1,0
+    errors = getErrorsforLCD(43, 14, 450);
+    CHECK_EQUAL("High salinity   Temperature high", errors);
+
+    // 1,0,0
+    errors = getErrorsforLCD(43, 8.5, 450);
+    CHECK_EQUAL("Temperature high", errors);
+
+    // 1,-1,1
+    errors = getErrorsforLCD(43, 4, 450);
+    CHECK_EQUAL("Low salinity    Temperature high", errors);
+}
+
 int main(int, const char *[])
 {
-   return UnitTest::RunAllTests();
+    return UnitTest::RunAllTests();
 }

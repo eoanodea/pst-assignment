@@ -17,7 +17,7 @@ class TextLCD
 public:
     TextLCD(string p29, string p30, string p28, string p27, string p26, string p25) {}
 
-    void printf(const char* format, ...)
+    void printf(const char *format, ...)
     {
         va_list args;
         va_start(args, format);
@@ -45,6 +45,5 @@ public:
 
     void cls() {}
 };
-
 
 #endif

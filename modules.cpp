@@ -61,13 +61,15 @@ void manualMotorControl(Motor *mtr)
 {
     mtr->setDirection((mtr == &mtrA) ? INJECTA : INJECTB);
 
-    if (switchDown(switch4) && mtr->currentState == Motor::idle) {
-        mtr->initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED);
-    } else if (!switchDown(switch4) && mtr->currentState != Motor::idle) {
+    if (switchDown(switch4) && mtr->currentState == Motor::idle)
+    {
+        mtr->initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED);
+    }
+    else if (!switchDown(switch4) && mtr->currentState != Motor::idle)
+    {
         mtr->currentState = Motor::deaccelerate;
     }
 }
-
 
 void run()
 {
@@ -88,13 +90,16 @@ void run()
 
     errors = getErrorsforLCD(temp, sal, waterLevel);
     lcd.cls();
-    lcd.printf("Temp: %.1f deg\nSal: %.1f ppt", temp, sal);
-    // if (errors.empty()) {
-    //     lcd.cls();
-    //     lcd.printf("Temp: %.1f deg\nSal: %.1f ppt", temp, sal);
-    // } else {
-    //     displayOnLCD(errors.c_str());
-    // }
+    // lcd.printf("Temp: %.1f deg\nSal: %.1f ppt", temp, sal);
+    if (errors.empty())
+    {
+        lcd.cls();
+        lcd.printf("Temp: %.1f deg\nSal: %.1f ppt", temp, sal);
+    }
+    else
+    {
+        displayOnLCD(errors.c_str());
+    }
 
     // Heater + red LED
     checkTemperature(temp);
@@ -103,48 +108,65 @@ void run()
     checkRanges(temp, sal, waterLevel);
 
     float timePassed = timerInjectFreq.read();
-    if (timePassed < 30 && numInjections < 5) {
-        if (sal < DESIRED_SAL && mtrB.currentState == Motor::idle) {
+    if (timePassed < 30 && numInjections < 5)
+    {
+        if (sal < MIN_SAL && mtrB.currentState == Motor::idle)
+        {
             mtrB.setDirection(INJECTB);
-            mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRB);
+            mtrB.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRB);
             injectorBlevel--;
             numInjections++;
-        } else if (sal >= DESIRED_SAL && mtrA.currentState == Motor::idle) {
+        }
+        else if (sal > MAX_SAL && mtrA.currentState == Motor::idle)
+        {
             mtrA.setDirection(INJECTA);
-            mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRA);
+            mtrA.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRA);
             injectorAlevel--;
             numInjections++;
         }
-    } else if (timePassed >= 30) {
+    }
+    else if (timePassed >= 30)
+    {
         timerInjectFreq.reset();
         numInjections = 0;
     }
 
     // print the percentage and 16 bit normalized values
-    if (mtrA.currentState == Motor::idle && mtrB.currentState == Motor::idle) {
-        if (errors.empty()) {
+    if (mtrA.currentState == Motor::idle && mtrB.currentState == Motor::idle)
+    {
+        if (errors.empty())
+        {
             wait(1);
-        } else {
+        }
+        else
+        {
             buzzInterval();
         }
-
-    } else {
-        if (errors.empty()) {
+    }
+    else
+    {
+        if (errors.empty())
+        {
             timerMotor.reset();
-            while (timerMotor.read() < 1) {
+            while (timerMotor.read() < 1)
+            {
                 mtrA.update(mtrB.currentState == mtrB.idle);
                 mtrB.update(true);
             }
-        } else {
+        }
+        else
+        {
             timerMotor.reset();
-            while (timerMotor.read() < 0.5) {
+            while (timerMotor.read() < 0.5)
+            {
                 mtrA.update(mtrB.currentState == mtrB.idle);
                 mtrB.update(true);
             }
             activateBuzzer(true);
 
             timerMotor.reset();
-            while (timerMotor.read() < 0.5) {
+            while (timerMotor.read() < 0.5)
+            {
                 mtrA.update(mtrB.currentState == mtrB.idle);
                 mtrB.update(true);
             }
@@ -152,7 +174,8 @@ void run()
         }
     }
 
-    if ((mtrA.currentState == mtrA.idle && injectorAlevel == 0) || (mtrB.currentState == mtrB.idle && injectorBlevel == 0)) {
+    if ((mtrA.currentState == mtrA.idle && injectorAlevel == 0) || (mtrB.currentState == mtrB.idle && injectorBlevel == 0))
+    {
         currentMode = Refill;
     }
 }
@@ -168,10 +191,12 @@ void refillInjectors()
     mtrB.printState();
 
     displayOnLCD("Refilling...");
-    while (mtrA.currentState != Motor::idle || mtrB.currentState != Motor::idle) {
+    while (mtrA.currentState != Motor::idle || mtrB.currentState != Motor::idle)
+    {
         baseFunctions();
         timerMotor.reset();
-        while (timerMotor.read() < 1) {
+        while (timerMotor.read() < 1)
+        {
             mtrA.update(mtrB.currentState == mtrB.idle);
             mtrB.update(true);
         }
@@ -185,48 +210,54 @@ void setup()
     wait(2);
 
     displayOnLCD("Turn valves to\nposition R");
-    buzzInterval(); buzzInterval();
+    buzzInterval();
+    buzzInterval();
 
     // LCD: valves to position R
     waitForConfirmation();
 
     // Manually empty injector A
 
-    mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED+1000);
+    mtrA.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED + 1000);
     mtrA.setDirection(INJECTA);
-    while(!switchDown(switch3)) { // Confirmation
+    while (!switchDown(switch3))
+    { // Confirmation
         displayOnLCD("Empty Injector Awith Switch 8");
         manualMotorControl(&mtrA);
         timerMotor.reset();
-        while (timerMotor.read() < 0.5) {
+        while (timerMotor.read() < 0.5)
+        {
             mtrA.update(true);
         }
     }
     wait(1);
 
-   // Manually empty injector A
+    // Manually empty injector A
 
-    mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED+1000);
+    mtrB.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED + 1000);
     mtrB.setDirection(INJECTB);
-    while(!switchDown(switch3)) { // Confirmation
+    while (!switchDown(switch3))
+    { // Confirmation
         displayOnLCD("Empty Injector Bwith Switch 8");
         manualMotorControl(&mtrB);
         timerMotor.reset();
-        while (timerMotor.read() < 0.5) {
-             mtrB.update(true);
-         }
+        while (timerMotor.read() < 0.5)
+        {
+            mtrB.update(true);
+        }
     }
     wait(1);
 
     // Fully fill injectors.
-    mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
-    mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
+    mtrA.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
+    mtrB.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
     refillInjectors();
     injectorAlevel = 35;
     injectorBlevel = 35;
 
     displayOnLCD("Turn valves to\nposition T");
-    buzzInterval(); buzzInterval();
+    buzzInterval();
+    buzzInterval();
 
     // LCD: valves to position T
     waitForConfirmation();
@@ -242,19 +273,24 @@ void refill()
 
     // printf("%i %i \r\n", injectorAlevel, injectorBlevel);
 
-    if (injectorAlevel == 0 && injectorBlevel == 0) {
+    if (injectorAlevel == 0 && injectorBlevel == 0)
+    {
         valves = "valves";
-        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
-        mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
+        mtrA.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
+        mtrB.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
         injectorAlevel = 35;
         injectorBlevel = 35;
-    } else if (injectorAlevel == 0) {
+    }
+    else if (injectorAlevel == 0)
+    {
         valves = "valve A";
-        mtrA.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
+        mtrA.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRA);
         injectorAlevel = 35;
-    } else { // injectorBlevel == 0
+    }
+    else
+    { // injectorBlevel == 0
         valves = "valve B";
-        mtrB.initializeMove(1/MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
+        mtrB.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_35ML_MTRB);
         injectorBlevel = 35;
     }
 
@@ -266,7 +302,8 @@ void refill()
     buzzInterval();
 
     // Wait for confirmation.
-    while (!switchDown(switch3)) {
+    while (!switchDown(switch3))
+    {
         baseFunctions();
     }
 
@@ -278,7 +315,8 @@ void refill()
     buzzInterval();
 
     // Wait for confirmation.
-    while (!switchDown(switch3)) {
+    while (!switchDown(switch3))
+    {
         baseFunctions();
     }
 
