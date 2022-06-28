@@ -110,14 +110,14 @@ void run()
     float timePassed = timerInjectFreq.read();
     if (timePassed < 30 && numInjections < 5)
     {
-        if (sal < MIN_SAL && mtrB.currentState == Motor::idle)
+        if (sal < MIN_INJECT_SAL && mtrB.currentState == Motor::idle)
         {
             mtrB.setDirection(INJECTB);
             mtrB.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRB);
             injectorBlevel--;
             numInjections++;
         }
-        else if (sal > MAX_SAL && mtrA.currentState == Motor::idle)
+        else if (sal > MAX_INJECT_SAL && mtrA.currentState == Motor::idle)
         {
             mtrA.setDirection(INJECTA);
             mtrA.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED, STEPS_FOR_1ML_MTRA);

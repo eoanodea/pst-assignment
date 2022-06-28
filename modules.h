@@ -18,9 +18,10 @@
 #define STEPS_FOR_35ML_MTRB 211435
 
 // Values defined in requirements.
-#define MIN_SAL 8.2
-#define MAX_SAL 8.7
-#define DESIRED_SAL 7.5
+#define MIN_SAL 7
+#define MAX_SAL 10
+#define MIN_INJECT_SAL 8.2
+#define MAX_INJECT_SAL 8.7
 #define MIN_TEMP 35
 #define MAX_TEMP 42
 #define DESIRED_TEMP 37
