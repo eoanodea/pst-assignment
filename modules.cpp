@@ -7,9 +7,11 @@
 #include <string>
 #include <math.h>
 
-// string p21="STP_B", p22="STP_A", p23="redLED", p24="greenLED", p25="A7", p26="A6", p27="A5", p28="A4", p29="LCD_RS", p30="LCD_EN",
-//        p5="buzzer", p6="p6", p7="mtrB_EN", p8="DIR_B", p9="DIR_A", p10="mtrA_EN", p11="M0", p12="M1", p13="M2", p14="heater",
-//        p15="p15", p16="SW2", p17="SW3", p18="SW4", p19="temp", p20="sal";
+#ifdef UNIT_TESTING
+string p21 = "STP_B", p22 = "STP_A", p23 = "redLED", p24 = "greenLED", p25 = "A7", p26 = "A6", p27 = "A5", p28 = "A4", p29 = "LCD_RS", p30 = "LCD_EN",
+       p5 = "buzzer", p6 = "p6", p7 = "mtrB_EN", p8 = "DIR_B", p9 = "DIR_A", p10 = "mtrA_EN", p11 = "M0", p12 = "M1", p13 = "M2", p14 = "heater",
+       p15 = "toggle1", p16 = "SW2", p17 = "SW3", p18 = "SW4", p19 = "temp", p20 = "sal";
+#endif
 
 // RS, ENABLE, A4, A5, A6, A7
 TextLCD lcd(p29, p30, p28, p27, p26, p25);
@@ -46,17 +48,6 @@ Timer timerMotor, timerInjectFreq;
 
 int numInjections = 0;
 
-// void displayDefaultLCD(float Vtemp, float Vsal, float temp, float sal)
-// {
-//     if (!toggleDown(toggle1)) {
-//         lcd.printf("Temp: %.1f deg\n", temp);
-//         lcd.printf("Sal: %.1f ppt", sal);
-//     } else {
-//         lcd.printf("Temp: %.1f V\n", Vtemp);
-//         lcd.printf("Sal: %.1f V", Vsal);
-//     }
-// }
-
 void manualMotorControl(Motor *mtr)
 {
     mtr->setDirection((mtr == &mtrA) ? INJECTA : INJECTB);
@@ -83,14 +74,8 @@ void run()
     temp = get_temperature(Vtemp);
     sal = get_salinity(Vsal);
 
-    // printf("Motor A ");
-    // mtrA.printState();
-    // printf("Motor B ");
-    // mtrB.printState();
-
     errors = getErrorsforLCD(temp, sal, waterLevel);
     lcd.cls();
-    // lcd.printf("Temp: %.1f deg\nSal: %.1f ppt", temp, sal);
     if (errors.empty())
     {
         lcd.cls();
@@ -185,11 +170,6 @@ void refillInjectors()
     mtrA.setDirection(!INJECTA);
     mtrB.setDirection(!INJECTB);
 
-    // printf("Motor A %i ", mtrA.currentSpeed);
-    mtrA.printState();
-    // printf("Motor B %i ", mtrB.currentSpeed);
-    mtrB.printState();
-
     displayOnLCD("Refilling...");
     while (mtrA.currentState != Motor::idle || mtrB.currentState != Motor::idle)
     {
@@ -217,7 +197,6 @@ void setup()
     waitForConfirmation();
 
     // Manually empty injector A
-
     mtrA.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED + 1000);
     mtrA.setDirection(INJECTA);
     while (!switchDown(switch3))
@@ -233,7 +212,6 @@ void setup()
     wait(1);
 
     // Manually empty injector A
-
     mtrB.initializeMove(1 / MICROSTEPS_PER_STEP, MAX_SPEED + 1000);
     mtrB.setDirection(INJECTB);
     while (!switchDown(switch3))
@@ -270,8 +248,6 @@ void setup()
 void refill()
 {
     string valves;
-
-    // printf("%i %i \r\n", injectorAlevel, injectorBlevel);
 
     if (injectorAlevel == 0 && injectorBlevel == 0)
     {

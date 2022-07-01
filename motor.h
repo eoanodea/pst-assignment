@@ -34,11 +34,14 @@ public:
 
     bool operator==(Motor *other);
 
+    DigitalOut led;
+    int steps;
+
 private:
     DigitalOut direction, stepPin;
-    int steps, stepsToStop, speed;
+    int stepsToStop, speed;
 
-    DigitalOut en, led;
+    DigitalOut en;
     BusOut microstepping;
 
     void initializeMove(float microstep);

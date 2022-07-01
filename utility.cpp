@@ -57,6 +57,12 @@ void activateBuzzer(bool on)
     }
     else
     {
+#ifdef UNIT_TESTING
+        if (on)
+        {
+            testOutput.push_back(string("Buzzer activated"));
+        }
+#endif
         buzzer = on;
     }
 }
@@ -131,6 +137,7 @@ void checkTemperature(float temperature)
 
 void checkRanges(float temperature, float salinity, int waterLevel)
 {
+    // printf("%f %f %i\n", temperature, salinity, waterLevel);
     greenLED = temperature > MIN_TEMP && temperature < MAX_TEMP &&
                salinity >= MIN_SAL && salinity <= MAX_SAL &&
                waterLevel >= MIN_WATER && waterLevel <= MAX_WATER;

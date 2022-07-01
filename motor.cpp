@@ -1,5 +1,6 @@
 #include "motor.h"
 #include "mbed.h"
+#include "modules.h"
 
 Motor::Motor(PinName _en, PinName m0, PinName m1, PinName m2, PinName _stepPin, PinName dir, PinName _led) : en(_en),
                                                                                                              microstepping(m0, m1, m2),
@@ -69,7 +70,6 @@ void Motor::initializeMove(float microstep, int speed, int steps)
     this->steps = steps;
     this->stepsToStop = ceil(steps * 0.2);
     this->accRate = ceil((float)(speed - currentSpeed) / stepsToStop);
-    // printf("%d %d %d %d\r\n", this->speed, this->steps, this->stepsToStop, this->accRate);
 }
 
 void Motor::update(bool doWait)
@@ -84,8 +84,6 @@ void Motor::update(bool doWait)
         {
             wait(1 / currentSpeed);
         }
-
-        // printf("%f\r\n", currentSpeed);
 
         if (currentState == Motor::accelerate)
         {
@@ -115,6 +113,16 @@ void Motor::update(bool doWait)
 
 void Motor::enable()
 {
+
+#ifdef UNIT_TESTING
+    string msg = "Motor ";
+    msg += this == &mtrA ? "A activated" : "B activated";
+    testOutput.push_back(msg);
+
+    msg = "";
+    msg += this == &mtrA ? "topYellowLED=1" : "botYellowLED=1";
+    testOutput.push_back(msg);
+#endif
     en = 0;
     led = 1;
 }

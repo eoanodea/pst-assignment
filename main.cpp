@@ -12,12 +12,6 @@ int main(int argc, char const *argv[])
     float timeElapsed = 0.;
     timerMotor.start();
 
-    // Only for debug
-    // currentMode = Functional;
-    // timerInjectFreq.start();
-    // injectorAlevel = 35;
-    // injectorBlevel = 35;
-
     while (1)
     {
         switch (currentMode)
