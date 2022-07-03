@@ -37,6 +37,9 @@ public:
     DigitalOut led;
     int steps;
 
+    DigitalOut led;
+    int steps;
+
 private:
     DigitalOut direction, stepPin;
     int stepsToStop, speed;

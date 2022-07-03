@@ -320,7 +320,6 @@ SUITE(REFILL_MODE)
     }
 }
 
-
 SUITE(FUNCTIONAL_MODE)
 {
     TEST(FM_01)
@@ -392,7 +391,6 @@ SUITE(FUNCTIONAL_MODE)
         CHECK_EQUAL(1, numInjections);
         CHECK_EQUAL(0, mtrB.led); // botYellowLED
         CHECK_EQUAL(Mode::Functional, currentMode);
-
     }
 
     TEST(FM_03)
