@@ -38,8 +38,7 @@ bool switchDown(DigitalIn sw)
 
 void waitForConfirmation()
 {
-    while (!switchDown(switch3))
-    {
+    while (!switchDown(switch3)) {
     } // Confirmation
     wait(1);
 }
@@ -51,12 +50,14 @@ void waitForConfirmation()
  */
 void activateBuzzer(bool on)
 {
-    if (!toggleDown(toggle1))
-    {
+    if (!toggleDown(toggle1)) {
         buzzer = false;
-    }
-    else
-    {
+    } else {
+#ifdef UNIT_TESTING
+        if (on) {
+            testOutput.push_back(string("Buzzer activated"));
+        }
+#endif
         buzzer = on;
     }
 }
@@ -76,33 +77,23 @@ void buzzInterval()
 string getErrorsforLCD(float temp, float sal, int waterLevel)
 {
     string err = "";
-    if (waterLevel > MAX_WATER)
-    {
+    if (waterLevel > MAX_WATER) {
         lcd.cls();
         lcd.printf("Water level highEmpty tank");
-        while (!switchDown(switch3))
-        {
+        while (!switchDown(switch3)) {
             baseFunctions();
         }
         waterLevel = MIN_WATER;
-    }
-    else
-    {
-        if (sal < MIN_SAL)
-        {
+    } else {
+        if (sal < MIN_SAL) {
             err += "Low salinity    ";
-        }
-        else if (sal > MAX_SAL)
-        {
+        } else if (sal > MAX_SAL) {
             err += "High salinity   ";
         }
 
-        if (temp <= MIN_TEMP)
-        {
+        if (temp <= MIN_TEMP) {
             err += "Temperature low ";
-        }
-        else if (temp >= MAX_TEMP)
-        {
+        } else if (temp >= MAX_TEMP) {
             err += "Temperature high";
         }
     }
@@ -110,11 +101,11 @@ string getErrorsforLCD(float temp, float sal, int waterLevel)
     return err;
 }
 
-void displayOnLCD(const char *format, ...)
+void displayOnLCD(const char* format, ...)
 {
     lcd.cls();
 
-    char buffer[32] = {0};
+    char buffer[32] = { 0 };
     va_list args;
     va_start(args, format);
     vsnprintf(buffer, 32, format, args);
@@ -131,9 +122,9 @@ void checkTemperature(float temperature)
 
 void checkRanges(float temperature, float salinity, int waterLevel)
 {
-    greenLED = temperature > MIN_TEMP && temperature < MAX_TEMP &&
-               salinity >= MIN_SAL && salinity <= MAX_SAL &&
-               waterLevel >= MIN_WATER && waterLevel <= MAX_WATER;
+    greenLED = temperature > MIN_TEMP && temperature < MAX_TEMP&&
+        salinity >= MIN_SAL && salinity <= MAX_SAL &&
+        waterLevel >= MIN_WATER && waterLevel <= MAX_WATER;
 }
 
 // Basic functions that are activated in both Functional mode and Refill mode

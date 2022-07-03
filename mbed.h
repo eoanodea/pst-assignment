@@ -1,7 +1,6 @@
 #ifndef MBED_H
 #define MBED_H
 
-// Include the string library
 #include <string>
 #include <ctime>
 #include <chrono>
@@ -26,21 +25,28 @@ inline void wait(float x)
 class AnalogIn
 {
 public:
-    std::random_device rd;  // Will be used to obtain a seed for the random number engine
-
-    AnalogIn(string pin) : gen(rd()), dis(0, 1) {}
+    AnalogIn(string PinName)
+    {
+        pin = PinName;
+    }
 
     float read()
     {
-        return dis(gen);
+        return _value;
     }
 
-    AnalogIn(const AnalogIn &)
+    AnalogIn& operator=(const float val)
+    {
+        _value = val;
+        return *this;
+    }
+
+    AnalogIn(const AnalogIn&)
     {
     }
 private:
-    std::mt19937 gen; // Standard mersenne_twister_engine seeded with rd()
-    std::uniform_real_distribution<> dis;
+    float _value;
+    string pin;
 };
 
 
@@ -52,18 +58,30 @@ struct DigitalIn final
     DigitalIn() = default;
 
     DigitalIn(string val)
+        : _value{ false }
     {
         pin = val;
     }
 
     operator bool() const
     {
-        // Randomly 0 or 1
-        return rand() % 2;
+        return _value;
+    }
+
+    DigitalIn& operator=(const bool val)
+    {
+        _value = val;
+        return *this;
+    }
+
+    bool operator==(const bool other)
+    {
+        return _value == other;
     }
 
 private:
     string pin;
+    bool _value{ false };
 };
 
 
@@ -88,7 +106,6 @@ struct DigitalOut final
     DigitalOut& operator=(const bool val)
     {
         _value = val;
-        // printf("%s = %i\n", pin.c_str(), _value);
         return *this;
     }
 
@@ -153,6 +170,13 @@ public:
     double read()
     {
         return (std::clock() - start_time) / (double)CLOCKS_PER_SEC;
+    }
+
+    Timer& operator=(float sec)
+    {
+        reset();
+        start_time -= sec * (double)CLOCKS_PER_SEC;
+        return *this;
     }
 };
 

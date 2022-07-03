@@ -1,11 +1,12 @@
 #include "motor.h"
 #include "mbed.h"
+#include "modules.h"
 
 Motor::Motor(PinName _en, PinName m0, PinName m1, PinName m2, PinName _stepPin, PinName dir, PinName _led) : en(_en),
-                                                                                                             microstepping(m0, m1, m2),
-                                                                                                             stepPin(_stepPin),
-                                                                                                             direction(dir),
-                                                                                                             led(_led)
+microstepping(m0, m1, m2),
+stepPin(_stepPin),
+direction(dir),
+led(_led)
 {
     disable();
 }
@@ -29,12 +30,9 @@ void Motor::setResolution(float microstep)
 
 void Motor::setDirection(int dir)
 {
-    if (dir == 1)
-    {
+    if (dir == 1) {
         direction = 0;
-    }
-    else if (dir == 0)
-    {
+    } else if (dir == 0) {
         direction = 1;
     }
 }
@@ -69,44 +67,31 @@ void Motor::initializeMove(float microstep, int speed, int steps)
     this->steps = steps;
     this->stepsToStop = ceil(steps * 0.2);
     this->accRate = ceil((float)(speed - currentSpeed) / stepsToStop);
-    // printf("%d %d %d %d\r\n", this->speed, this->steps, this->stepsToStop, this->accRate);
 }
 
 void Motor::update(bool doWait)
 {
-    if (currentState != Motor::idle)
-    {
+    if (currentState != Motor::idle) {
         steps -= 1;
         stepPin = !stepPin;
 
         // Speed or times per second
-        if (doWait)
-        {
+        if (doWait) {
             wait(1 / currentSpeed);
         }
 
-        // printf("%f\r\n", currentSpeed);
-
-        if (currentState == Motor::accelerate)
-        {
+        if (currentState == Motor::accelerate) {
             currentSpeed += accRate;
-            if (currentSpeed >= speed)
-            {
+            if (currentSpeed >= speed) {
                 currentState = Motor::constant;
             }
-        }
-        else if (currentState == Motor::constant)
-        {
-            if (steps == stepsToStop)
-            {
+        } else if (currentState == Motor::constant) {
+            if (steps == stepsToStop) {
                 currentState = Motor::deaccelerate;
             }
-        }
-        else if (currentState == Motor::deaccelerate)
-        {
+        } else if (currentState == Motor::deaccelerate) {
             currentSpeed -= accRate;
-            if (currentSpeed <= MIN_SPEED)
-            {
+            if (currentSpeed <= MIN_SPEED) {
                 disable();
             }
         }
@@ -115,6 +100,15 @@ void Motor::update(bool doWait)
 
 void Motor::enable()
 {
+#ifdef UNIT_TESTING
+    string msg = "Motor ";
+    msg += this == &mtrA ? "A activated" : "B activated";
+    testOutput.push_back(msg);
+
+    msg = "";
+    msg += this == &mtrA ? "topYellowLED=1" : "botYellowLED=1";
+    testOutput.push_back(msg);
+#endif
     en = 0;
     led = 1;
 }
@@ -128,8 +122,7 @@ void Motor::disable()
 
 void Motor::printState()
 {
-    switch (currentState)
-    {
+    switch (currentState) {
     case Motor::idle:
         printf("idle\r\n");
         break;
@@ -147,7 +140,7 @@ void Motor::printState()
     }
 }
 
-bool Motor::operator==(Motor *other)
+bool Motor::operator==(Motor* other)
 {
     return this == other;
 }

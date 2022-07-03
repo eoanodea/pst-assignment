@@ -28,9 +28,6 @@
 #define MIN_WATER 400
 #define MAX_WATER 500
 
-// string p21="p21", p22="p22", p23="p23", p24="greenLED", p25="p25", p26="p26", p27="p27", p28="p28", p29="p29", p30="p30";
-// string p5="p5", p6="p6", p7="p7", p8="p8", p9="p9", p10="p10", p11="p11", p12="p12", p13="p13", p14="heater", p15="p15", p16="p16", p17="p17", p18="p18", p19="p19", p20="p20";
-
 // RS, ENABLE, A4, A5, A6, A7
 extern TextLCD lcd;
 
@@ -73,7 +70,7 @@ enum Mode
 };
 extern Mode currentMode;
 
-extern void manualMotorControl(Motor *mtr);
+extern void manualMotorControl(Motor* mtr);
 extern void run();
 extern void refillInjectors();
 extern void setup();
